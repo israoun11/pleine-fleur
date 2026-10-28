@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
 import { BagProvider } from './context/BagContext.jsx';
-import { CATEGORIES, findProduct } from './data/products.js';
+import { CATEGORIES, PRODUCTS, findProduct, img } from './data/products.js';
 import Header, { NAV } from './components/Header.jsx';
 import Hero from './components/Hero.jsx';
 import Collection from './components/Collection.jsx';
 import Editorial from './components/Editorial.jsx';
+import SummerEdit from './components/SummerEdit.jsx';
+import Discover from './components/Discover.jsx';
 import Footer from './components/Footer.jsx';
 import ProductDetail from './components/ProductDetail.jsx';
 import BagDrawer from './components/BagDrawer.jsx';
@@ -61,10 +63,34 @@ function Store() {
       <Header onSearch={() => setSearchOpen(true)} onMenu={() => setMenuOpen(true)} />
 
       <main>
-        <Hero />
+        <Hero onOpen={openProduct} />
+
+        <section className="intro" id="house" aria-labelledby="intro-title">
+          <div className="wrap intro__grid">
+            <h2 id="intro-title" className="intro__title">
+              Pleine fleur
+            </h2>
+            <div className="intro__body">
+              <p className="intro__lead">
+                In French leatherwork, <em>pleine fleur</em> names the outer face of the hide, kept whole
+                rather than sanded away.
+              </p>
+              <p>
+                The house borrows the name for a simple idea: shapes left uncomplicated, colour chosen with
+                care, and a few signatures you learn to recognise. Below are {PRODUCTS.length} designs, most of them in
+                several colours. Pick a colour on any bag to see it.
+              </p>
+            </div>
+            <figure className="intro__figure">
+              <img src={img.cut('i3_21')} alt="Slouch Hobo in burgundy" loading="lazy" />
+            </figure>
+          </div>
+        </section>
 
         <Collection filter={filter} setFilter={setFilter} onOpen={openProduct} />
-        <Editorial onFilter={filterAndGo} />
+        <Editorial onOpen={openProduct} onFilter={filterAndGo} />
+        <SummerEdit onOpen={openProduct} />
+        <Discover onFilter={filterAndGo} />
       </main>
 
       <Footer onFilter={setFilter} />
