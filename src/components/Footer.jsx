@@ -57,7 +57,6 @@ export default function Footer({ onFilter }) {
 
         <nav className="footer__col" aria-label="The house">
           <p className="footer__h">The house</p>
-          <a href="#house" className="footer__link">About Pleine Fleur</a>
           <a href="#serpent" className="footer__link">The serpent clasp</a>
           <a href="#summer" className="footer__link">Summer weaves</a>
         </nav>
