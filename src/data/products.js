@@ -1,10 +1,6 @@
 // Pleine Fleur catalogue (demo).
-// Every image comes from the client's own photographs. Each colour variant
-// points at one source photo id; the same id is used for three files:
-//   img/products/<id>.webp     studio presentation on the shared ivory ground
-//   img/products/<id>-sm.webp  smaller version for the grid
-//   img/life/<id>.webp         the original photograph, as shot
-//   img/cut/<id>.webp          transparent cut-out (hero and editorial)
+// Every image is one of the client's own photographs, exactly as supplied
+// (each cut out of the original WhatsApp collage, no edits): img/original/<id>.png
 //
 // Names are working descriptions, not official model names. Prices,
 // materials and dimensions were not supplied, so the store shows
@@ -200,11 +196,13 @@ export const PRODUCTS = [
   },
 ];
 
+// All views use the client's original photographs, unedited.
+const original = (id) => `img/original/${id}.png`;
 export const img = {
-  studio: (id) => `img/products/${id}.webp`,
-  studioSm: (id) => `img/products/${id}-sm.webp`,
-  life: (id) => `img/life/${id}.webp`,
-  cut: (id) => `img/cut/${id}.webp`,
+  studio: original,
+  studioSm: original,
+  life: original,
+  cut: original,
 };
 
 export const formatPrice = (n) => `${n} TND`;

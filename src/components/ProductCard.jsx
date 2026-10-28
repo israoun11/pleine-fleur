@@ -22,8 +22,6 @@ export default function ProductCard({ product, onOpen, eager = false }) {
             key={v.photo}
             className={`card__img ${i === sel ? 'is-on' : ''}`}
             src={img.studioSm(v.photo)}
-            srcSet={`${img.studioSm(v.photo)} 560w, ${img.studio(v.photo)} 1000w`}
-            sizes="(max-width: 760px) 50vw, (max-width: 1360px) 33vw, 440px"
             alt=""
             width="560"
             height="700"

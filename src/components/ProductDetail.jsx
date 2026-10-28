@@ -20,15 +20,12 @@ export default function ProductDetail({ product, startVariant = 0, onClose, onOp
 
   if (!product) return null;
   const variant = product.variants[sel];
-  // Gallery for the selected colour: studio view, original photograph(s).
-  const shots = [
-    { src: img.studio(variant.photo), alt: `${product.name} in ${variant.name}, studio view`, kind: 'studio' },
-    { src: img.life(variant.photo), alt: `${product.name} in ${variant.name}, as photographed`, kind: 'life' },
-    ...variant.extra.flatMap((x) => [
-      { src: img.studio(x), alt: `${product.name} in ${variant.name}, second angle`, kind: 'studio' },
-      { src: img.life(x), alt: `${product.name} in ${variant.name}, second photograph`, kind: 'life' },
-    ]),
-  ];
+  // Gallery for the selected colour: the original photograph(s).
+  const shots = [variant.photo, ...variant.extra].map((id, n) => ({
+    src: img.life(id),
+    alt: `${product.name} in ${variant.name}${n ? ', second photograph' : ''}`,
+    kind: 'studio',
+  }));
   const current = shots[Math.min(shot, shots.length - 1)];
   const cat = CATEGORIES.find((c) => c.id === product.category)?.label;
   const related = PRODUCTS.filter((p) => p.category === product.category && p.id !== product.id).slice(0, 3);
