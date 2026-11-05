@@ -1,21 +1,25 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { findProduct } from '../data/products.js';
 
+// Shopping bag, persisted in localStorage. One line per product + colour:
+// adding the same product in the same colour raises its quantity.
 const BagContext = createContext(null);
 const KEY = 'pleine-fleur-bag';
+const MAX_QTY = 10;
 
 function load() {
   try {
-    const raw = localStorage.getItem(KEY);
-    const data = raw ? JSON.parse(raw) : [];
-    return Array.isArray(data) ? data : [];
+    const data = JSON.parse(localStorage.getItem(KEY) || '[]');
+    return Array.isArray(data) ? data.filter((it) => findProduct(it.productId)) : [];
   } catch {
     return [];
   }
 }
 
+const same = (a, productId, variant) => a.productId === productId && a.variant === variant;
+
 export function BagProvider({ children }) {
   const [items, setItems] = useState(load);
-  const [open, setOpen] = useState(false);
 
   useEffect(() => {
     try {
@@ -26,32 +30,40 @@ export function BagProvider({ children }) {
   }, [items]);
 
   const api = useMemo(() => {
-    const keyOf = (productId, variant) => `${productId}::${variant}`;
+    const lines = items
+      .map((it) => {
+        const p = findProduct(it.productId);
+        const v = p?.variants.find((x) => x.name === it.variant);
+        return p && v ? { ...it, product: p, colour: v, unit: p.price, total: p.price * it.qty } : null;
+      })
+      .filter(Boolean);
     return {
-      items,
-      open,
-      setOpen,
-      count: items.reduce((n, it) => n + it.qty, 0),
-      add(productId, variant) {
+      lines,
+      count: lines.reduce((n, l) => n + l.qty, 0),
+      subtotal: lines.reduce((n, l) => n + l.total, 0),
+      maxQty: MAX_QTY,
+      add(productId, variant, qty = 1) {
         setItems((prev) => {
-          const k = keyOf(productId, variant);
-          const found = prev.find((it) => keyOf(it.productId, it.variant) === k);
-          if (found) return prev.map((it) => (it === found ? { ...it, qty: it.qty + 1 } : it));
-          return [...prev, { productId, variant, qty: 1 }];
+          const found = prev.find((it) => same(it, productId, variant));
+          if (found) return prev.map((it) => (it === found ? { ...it, qty: Math.min(MAX_QTY, it.qty + qty) } : it));
+          return [...prev, { productId, variant, qty: Math.min(MAX_QTY, qty) }];
         });
       },
       setQty(productId, variant, qty) {
         setItems((prev) =>
           prev
-            .map((it) => (keyOf(it.productId, it.variant) === keyOf(productId, variant) ? { ...it, qty } : it))
+            .map((it) => (same(it, productId, variant) ? { ...it, qty: Math.min(MAX_QTY, qty) } : it))
             .filter((it) => it.qty > 0)
         );
+      },
+      remove(productId, variant) {
+        setItems((prev) => prev.filter((it) => !same(it, productId, variant)));
       },
       clear() {
         setItems([]);
       },
     };
-  }, [items, open]);
+  }, [items]);
 
   return <BagContext.Provider value={api}>{children}</BagContext.Provider>;
 }

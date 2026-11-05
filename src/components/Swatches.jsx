@@ -1,19 +1,19 @@
-// Row of colour swatches. Each one is a real button with an accessible name,
-// so it works with touch, mouse and keyboard alike.
-export default function Swatches({ variants, selected, onSelect, size = 'sm', idPrefix }) {
-  if (variants.length < 2 && size === 'sm') return null;
+// Row of colour swatches. Each is a real button with an accessible name,
+// so it works with touch, mouse and keyboard.
+export default function Swatches({ variants, selected, onSelect, size = 'sm', label = 'Couleurs', showSingle = false }) {
+  if (variants.length < 2 && size === 'sm' && !showSingle) return <div className="swatches swatches--empty" aria-hidden="true" />;
   return (
-    <div className={`swatches swatches--${size}`} role="group" aria-label="Colours">
+    <div className={`swatches swatches--${size}`} role="group" aria-label={label}>
       {variants.map((v, i) => (
         <button
           key={v.name}
-          id={idPrefix ? `${idPrefix}-${i}` : undefined}
           type="button"
           className="swatch"
           aria-label={v.name}
           aria-pressed={i === selected}
           title={v.name}
           onClick={(e) => {
+            e.preventDefault();
             e.stopPropagation();
             onSelect(i);
           }}

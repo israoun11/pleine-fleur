@@ -13,6 +13,7 @@ export default function Overlay({ open, onClose, label, variant = 'right', child
     const prev = document.activeElement;
     const html = document.documentElement;
     const prevOverflow = html.style.overflow;
+    const y = window.scrollY;
     html.style.overflow = 'hidden';
     const t = setTimeout(() => {
       const first = panel.current?.querySelector('[data-autofocus]') || panel.current;
@@ -42,6 +43,8 @@ export default function Overlay({ open, onClose, label, variant = 'right', child
       clearTimeout(t);
       document.removeEventListener('keydown', onKey);
       html.style.overflow = prevOverflow;
+      // Back exactly where the visitor was, without a smooth-scroll animation.
+      if (Math.abs(window.scrollY - y) > 1) window.scrollTo({ top: y, behavior: 'instant' });
       prev?.focus?.({ preventScroll: true });
     };
   }, [open]);

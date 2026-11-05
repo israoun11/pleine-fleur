@@ -2,9 +2,12 @@
 // Every image is one of the client's own photographs, exactly as supplied
 // (each cut out of the original WhatsApp collage, no edits): img/original/<id>.png
 //
-// Names are working descriptions, not official model names. Prices,
-// materials and dimensions were not supplied, so the store shows
-// "Price on request" and leaves those details for the client to confirm.
+// Each product supports: id, name, price (TND), category, note (short
+// description), variants (colour name, swatch hex, photo id, extra photos),
+// featured (shown in the homepage arches), stock, materials, dimensions, care.
+// Names are working descriptions. Materials, dimensions, care and stock were
+// not supplied: they stay null and the product page shows an editable
+// placeholder until the client provides them.
 
 export const CATEGORIES = [
   { id: 'all', label: 'All bags' },
@@ -17,8 +20,11 @@ export const CATEGORIES = [
 ];
 
 const v = (name, hex, photo, extra = []) => ({ name, hex, photo, extra });
+// Details the client still has to supply (null = show placeholder).
+const PENDING = { stock: null, materials: null, dimensions: null, care: null };
 
 export const PRODUCTS = [
+  // (each entry gets the PENDING fields below)
   {
     id: 'serpent-top-handle',
     price: 590, // TND, same for every colour
@@ -82,6 +88,7 @@ export const PRODUCTS = [
   },
   {
     id: 'slouch-hobo',
+    featured: true,
     price: 535, // TND, same for every colour
     name: 'Slouch Hobo',
     category: 'shoulder',
@@ -116,6 +123,7 @@ export const PRODUCTS = [
   },
   {
     id: 'push-lock-tote',
+    featured: true,
     price: 580, // TND, same for every colour
     name: 'Push-Lock Tote',
     category: 'tote',
@@ -180,6 +188,7 @@ export const PRODUCTS = [
   },
   {
     id: 'woven-basket',
+    featured: true,
     price: 505, // TND, same for every colour
     name: 'Woven Basket',
     category: 'summer',
@@ -196,15 +205,41 @@ export const PRODUCTS = [
   },
 ];
 
-// All views use the client's original photographs, unedited.
+export const PRODUCTS_FULL = PRODUCTS.map((p) => ({ ...PENDING, ...p }));
+
+// Original photographs, unedited: img/original/<id>.png
+// Studio versions (the real bag cut out and placed in the beige arch studio)
+// exist only where the cut-out is complete and accurate: img/studio/<id>.webp.
+// Every other photo is shown as the original.
+export const STUDIO = new Set(['i3_21', 'i4_00', 'i4_01', 'i5_10', 'i5_01', 'i2_00']);
 const original = (id) => `img/original/${id}.png`;
+export const isStudio = (id) => STUDIO.has(id);
 export const img = {
+  original,
+  view: (id) => (STUDIO.has(id) ? `img/studio/${id}.webp` : original(id)),
+  // kept for older call sites
   studio: original,
   studioSm: original,
   life: original,
   cut: original,
 };
 
-export const formatPrice = (n) => `${n} TND`;
+export const formatPrice = (n) => `${Number(n).toLocaleString('fr-FR')} TND`;
 
-export const findProduct = (id) => PRODUCTS.find((p) => p.id === id);
+export const findProduct = (id) => PRODUCTS_FULL.find((p) => p.id === id);
+const FEATURED_ORDER = ['slouch-hobo', 'push-lock-tote', 'woven-basket'];
+export const FEATURED = FEATURED_ORDER.map((id) => PRODUCTS_FULL.find((p) => p.id === id)).filter(Boolean);
+// Homepage collection: the six studio images, each tied to its real
+// product and colour (vi = colour index on that product).
+const COLLECTION_PHOTOS = ['i3_21', 'i5_10', 'i2_00', 'i4_00', 'i4_01', 'i5_01'];
+export const COLLECTION = COLLECTION_PHOTOS.map((photo) => {
+  const product = PRODUCTS_FULL.find((p) => p.variants.some((v) => v.photo === photo || v.extra.includes(photo)));
+  const vi = product.variants.findIndex((v) => v.photo === photo || v.extra.includes(photo));
+  return { product, vi, photo };
+});
+// First photo of a product that has a studio version (homepage cover).
+export const studioCover = (p) => p.variants.findIndex((v) => STUDIO.has(v.photo));
+export const categoryLabel = (id) => CATEGORIES.find((c) => c.id === id)?.label || '';
+// All photographs of a product, one per colour plus any extra angles.
+export const photosOf = (p) =>
+  p.variants.flatMap((v, vi) => [v.photo, ...v.extra].map((photo) => ({ photo, vi, colour: v.name })));

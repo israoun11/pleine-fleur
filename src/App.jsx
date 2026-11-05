@@ -1,145 +1,160 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useLayoutEffect, useState } from 'react';
 import { BagProvider } from './context/BagContext.jsx';
-import { CATEGORIES, PRODUCTS, findProduct, img } from './data/products.js';
-import Header, { NAV } from './components/Header.jsx';
+import { closeProduct, useRoute } from './router.js';
+import { findProduct } from './data/products.js';
+import Nav from './components/Nav.jsx';
+import MenuPanel from './components/MenuPanel.jsx';
 import Hero from './components/Hero.jsx';
-import Collection from './components/Collection.jsx';
-import Editorial from './components/Editorial.jsx';
-import SummerEdit from './components/SummerEdit.jsx';
-import Discover from './components/Discover.jsx';
+import { DiscoverCampaign, EditorialCampaign, Gallery, Magazine, Maison } from './components/HomeSections.jsx';
 import Footer from './components/Footer.jsx';
-import ProductDetail from './components/ProductDetail.jsx';
-import BagDrawer from './components/BagDrawer.jsx';
-import SearchPanel from './components/SearchPanel.jsx';
+import ProductOverlay from './pages/ProductOverlay.jsx';
 import Overlay from './components/Overlay.jsx';
-import { CloseIcon } from './components/Icons.jsx';
+import BagPage from './pages/BagPage.jsx';
+import CheckoutPage from './pages/CheckoutPage.jsx';
+import ConfirmationPage from './pages/ConfirmationPage.jsx';
+import { AccountPage, InfoPage, NotFound, SearchPage } from './pages/OtherPages.jsx';
 
-// Product pages are addressable as #bag-<product-id> so a link to one
-// bag can be shared; section anchors keep working as normal.
-const PREFIX = 'bag-';
-const readHash = () => {
-  const h = decodeURIComponent(location.hash.slice(1));
-  return h.startsWith(PREFIX) && findProduct(h.slice(PREFIX.length)) ? h.slice(PREFIX.length) : null;
+const ORDER_KEY = 'pleine-fleur-last-order';
+const loadOrder = () => {
+  try {
+    return JSON.parse(sessionStorage.getItem(ORDER_KEY) || 'null');
+  } catch {
+    return null;
+  }
 };
 
-function Store() {
-  const [filter, setFilter] = useState('all');
-  const [detail, setDetail] = useState(() => {
-    const id = readHash();
-    return id ? { id, v: 0 } : null;
-  });
-  const [searchOpen, setSearchOpen] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
+const TITLES = {
+  home: 'Pleine Fleur',
+  panier: 'Panier — Pleine Fleur',
+  commande: 'Commande — Pleine Fleur',
+  confirmation: 'Confirmation — Pleine Fleur',
+  recherche: 'Recherche — Pleine Fleur',
+  compte: 'Mon compte — Pleine Fleur',
+};
 
-  const openProduct = useCallback((id, v = 0) => {
-    setDetail({ id, v });
-    if (location.hash !== `#${PREFIX}${id}`) history.replaceState(null, '', `#${PREFIX}${id}`);
-  }, []);
-
-  const closeProduct = useCallback(() => {
-    setDetail(null);
-    if (location.hash.startsWith(`#${PREFIX}`)) history.replaceState(null, '', location.pathname + location.search);
-  }, []);
-
-  useEffect(() => {
-    const onHash = () => {
-      const id = readHash();
-      if (id) setDetail((d) => (d?.id === id ? d : { id, v: 0 }));
-    };
-    window.addEventListener('hashchange', onHash);
-    return () => window.removeEventListener('hashchange', onHash);
-  }, []);
-
-  const filterAndGo = useCallback((id) => {
-    setFilter(id);
-    requestAnimationFrame(() =>
-      document.getElementById('collection')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    );
-  }, []);
-
+function Home() {
   return (
     <>
-      <a href="#collection" className="skip">Skip to the collection</a>
-      <Header onSearch={() => setSearchOpen(true)} onMenu={() => setMenuOpen(true)} />
-
-      <main>
-        <Hero onOpen={openProduct} />
-
-        <section className="intro" id="house" aria-labelledby="intro-title">
-          <div className="wrap intro__grid">
-            <h2 id="intro-title" className="intro__title">
-              Pleine fleur
-            </h2>
-            <div className="intro__body">
-              <p className="intro__lead">
-                In French leatherwork, <em>pleine fleur</em> names the outer face of the hide, kept whole
-                rather than sanded away.
-              </p>
-              <p>
-                The house borrows the name for a simple idea: shapes left uncomplicated, colour chosen with
-                care, and a few signatures you learn to recognise. Below are {PRODUCTS.length} designs, most of them in
-                several colours. Pick a colour on any bag to see it.
-              </p>
-            </div>
-            <figure className="intro__figure">
-              <img src={img.cut('i3_21')} alt="Slouch Hobo in burgundy" loading="lazy" />
-            </figure>
-          </div>
-        </section>
-
-        <Collection filter={filter} setFilter={setFilter} onOpen={openProduct} />
-        <Editorial onOpen={openProduct} onFilter={filterAndGo} />
-        <SummerEdit onOpen={openProduct} />
-        <Discover onFilter={filterAndGo} />
-      </main>
-
-      <Footer onFilter={setFilter} />
-
-      {detail && (
-        <ProductDetail
-          product={findProduct(detail.id)}
-          startVariant={detail.v}
-          onClose={closeProduct}
-          onOpen={openProduct}
-        />
-      )}
-      <BagDrawer />
-      <SearchPanel open={searchOpen} onClose={() => setSearchOpen(false)} onOpen={openProduct} />
-
-      <Overlay open={menuOpen} onClose={() => setMenuOpen(false)} label="Menu" variant="left">
-        <div className="mmenu">
-          <div className="drawer__head">
-            <p className="wordmark wordmark--menu">Pleine Fleur</p>
-            <button type="button" className="icon-btn" onClick={() => setMenuOpen(false)} aria-label="Close menu" data-autofocus>
-              <CloseIcon />
-            </button>
-          </div>
-          <nav aria-label="Mobile">
-            {NAV.map((n) => (
-              <a key={n.href} href={n.href} className="mmenu__link" onClick={() => setMenuOpen(false)}>
-                {n.label}
-              </a>
-            ))}
-          </nav>
-          <p className="mmenu__h">Shop by category</p>
-          <div className="mmenu__cats">
-            {CATEGORIES.filter((c) => c.id !== 'all').map((c) => (
-              <button
-                key={c.id}
-                type="button"
-                className="chip"
-                onClick={() => {
-                  setMenuOpen(false);
-                  setTimeout(() => filterAndGo(c.id), 60);
-                }}
-              >
-                {c.label}
-              </button>
-            ))}
-          </div>
-        </div>
-      </Overlay>
+      <Hero />
+      <Gallery />
+      <DiscoverCampaign />
+      <Magazine />
+      <Maison />
+      <EditorialCampaign />
     </>
+  );
+}
+
+// Gentle scroll reveals. Content is visible by default; only elements still
+// below the fold are held back until they scroll into view.
+function useReveal(key) {
+  useEffect(() => {
+    if (!('IntersectionObserver' in window) || matchMedia('(prefers-reduced-motion: reduce)').matches) return undefined;
+    const els = [...document.querySelectorAll('[data-reveal]')].filter((el) => el.getBoundingClientRect().top > innerHeight * 0.95);
+    const io = new IntersectionObserver(
+      (entries) =>
+        entries.forEach((e) => {
+          if (e.isIntersecting) {
+            e.target.classList.add('is-in');
+            io.unobserve(e.target);
+          }
+        }),
+      { rootMargin: '0px 0px -8% 0px' }
+    );
+    els.forEach((el) => {
+      el.classList.add('reveal');
+      io.observe(el);
+    });
+    return () => io.disconnect();
+  }, [key]);
+}
+
+function Store() {
+  const route = useRoute();
+  const [menu, setMenu] = useState(false);
+  const [order, setOrder] = useState(loadOrder);
+
+  // The page beneath a product overlay: the last non-product route
+  // (home when a product link is opened directly).
+  const isProduct = route.page === 'product';
+  const [base, setBase] = useState(() => (isProduct ? { route: { page: 'home', section: null }, hash: '' } : { route, hash: location.hash }));
+  useEffect(() => {
+    if (!isProduct) setBase({ route, hash: location.hash });
+  }, [route]);
+  const page0 = isProduct ? base.route : route;
+  const key = `${page0.page}:${page0.id || page0.slug || ''}`;
+
+  // New page: start at the top. Home section links: scroll to the section.
+  // Opening or closing a product overlay never moves the page beneath.
+  useLayoutEffect(() => {
+    if (isProduct) return;
+    if (page0.page === 'home' && page0.section && page0.section !== 'top') {
+      requestAnimationFrame(() => document.getElementById(page0.section)?.scrollIntoView({ behavior: 'smooth' }));
+    } else {
+      window.scrollTo(0, 0);
+    }
+  }, [key, page0.section]);
+
+  useEffect(() => {
+    const p = isProduct ? findProduct(route.id) : null;
+    document.title = p ? `${p.name} — Pleine Fleur` : TITLES[page0.page] || 'Pleine Fleur';
+  }, [route, key]);
+
+  useReveal(key);
+
+  const confirm = (o) => {
+    setOrder(o);
+    try {
+      sessionStorage.setItem(ORDER_KEY, JSON.stringify(o));
+    } catch {
+      /* the confirmation still shows for this visit */
+    }
+  };
+
+  let page;
+  switch (page0.page) {
+    case 'home':
+      page = <Home />;
+      break;
+    case 'panier':
+      page = <BagPage />;
+      break;
+    case 'commande':
+      page = <CheckoutPage onConfirmed={confirm} />;
+      break;
+    case 'confirmation':
+      page = <ConfirmationPage order={order} />;
+      break;
+    case 'recherche':
+      page = <SearchPage />;
+      break;
+    case 'compte':
+      page = <AccountPage />;
+      break;
+    case 'info':
+      page = <InfoPage slug={page0.slug} />;
+      break;
+    default:
+      page = <NotFound />;
+  }
+
+  const back = () => closeProduct(base.hash);
+
+  return (
+    <div className={`site site--${page0.page}`}>
+      <a href="#collection" className="skip">
+        Aller à la collection
+      </a>
+      <Nav light={page0.page === 'home'} onMenu={() => setMenu(true)} />
+      <main className="page-fade" key={key}>
+        {page}
+      </main>
+      <Footer />
+      <MenuPanel open={menu} onClose={() => setMenu(false)} />
+      <Overlay open={isProduct} onClose={back} label={isProduct ? findProduct(route.id).name : 'Produit'} variant="product">
+        {isProduct && <ProductOverlay id={route.id} colour={route.colour} onBack={back} />}
+      </Overlay>
+    </div>
   );
 }
 
