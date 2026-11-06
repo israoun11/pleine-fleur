@@ -21,6 +21,9 @@ export default function Overlay({ open, onClose, label, variant = 'right', child
     }, 30);
 
     const onKey = (e) => {
+      // only the topmost layer reacts
+      const layers = document.querySelectorAll('.overlay');
+      if (panel.current && layers[layers.length - 1] !== panel.current.closest('.overlay')) return;
       if (e.key === 'Escape') closeRef.current();
       if (e.key === 'Tab' && panel.current) {
         const f = panel.current.querySelectorAll(

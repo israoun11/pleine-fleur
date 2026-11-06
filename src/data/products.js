@@ -243,3 +243,25 @@ export const categoryLabel = (id) => CATEGORIES.find((c) => c.id === id)?.label 
 // All photographs of a product, one per colour plus any extra angles.
 export const photosOf = (p) =>
   p.variants.flatMap((v, vi) => [v.photo, ...v.extra].map((photo) => ({ photo, vi, colour: v.name })));
+
+// ---- Collection browser -------------------------------------------------
+// Categories shown in the collection interface (every category that has
+// products), with the photograph used for each category card.
+const CATEGORY_NAMES = {
+  'top-handle': 'Top Handle Bags',
+  tote: 'Tote Bags',
+  shoulder: 'Shoulder Bags',
+  crossbody: 'Crossbody Bags',
+  bucket: 'Bucket Bags',
+  summer: 'Summer Weaves',
+};
+const CATEGORY_COVER = { 'top-handle': 'i2_20', tote: 'i5_10', shoulder: 'i3_21', crossbody: 'i3_11', bucket: 'i6_01', summer: 'i2_00' };
+export const SHOP_CATEGORIES = CATEGORIES.filter((c) => c.id !== 'all')
+  .map((c) => ({ id: c.id, name: CATEGORY_NAMES[c.id] || c.label, cover: CATEGORY_COVER[c.id], products: PRODUCTS_FULL.filter((p) => p.category === c.id) }))
+  .filter((c) => c.products.length > 0);
+export const findCategory = (id) => SHOP_CATEGORIES.find((c) => c.id === id);
+// Photo used for a product in grids: its first studio colour, else colour 1.
+export const coverOf = (p) => {
+  const vi = Math.max(0, studioCover(p));
+  return { vi, photo: p.variants[vi].photo };
+};

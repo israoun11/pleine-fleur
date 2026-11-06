@@ -1,24 +1,32 @@
 import { useEffect, useState } from 'react';
-import { findProduct } from './data/products.js';
+import { findProduct, findCategory } from './data/products.js';
 import { INFO_PAGES } from './data/site.js';
 
 // Hash routing (works on any static host and keeps the browser back button).
 //   #                      home
 //   #collection, #magazine, #maison, #campagne   home, scrolled to a section
-//   #produit-<id>          product overlay (#produit-<id>--c2 opens colour 3)
+//   #boutique              collection browser: categories
+//   #boutique-<cat>        collection browser: one category (#boutique-<cat>--p2 = page 2)
+//   #produit-<id>          product popup (#produit-<id>--c2 opens colour 3)
 //   #panier #commande #confirmation #recherche #compte
 //   #info-<slug>           footer pages
 //
-// Product links are opened with history.pushState and a depth counter, so
-// the overlay sits on top of the page the visitor came from. Retour, Escape
-// and the browser back button all step back to that page, with its scroll
-// position and state untouched.
+// The collection browser and the product popup are layers over the page the
+// visitor came from. They open with history.pushState; each entry records the
+// trail of hashes before it, so Retour, the close icon, Escape and the browser
+// back button all step back to the right layer with its state untouched.
 export const HOME_SECTIONS = ['top', 'collection', 'campagne', 'magazine', 'maison', 'editorial'];
 const PAGES = ['panier', 'commande', 'confirmation', 'recherche', 'compte'];
 
 export function parse(hash) {
   const h = decodeURIComponent((hash || '').replace(/^#/, ''));
   if (!h || HOME_SECTIONS.includes(h)) return { page: 'home', section: h || null };
+  if (h === 'boutique') return { page: 'boutique', cat: null, pg: 1 };
+  if (h.startsWith('boutique-')) {
+    const [cat, p] = h.slice(9).split('--p');
+    if (!findCategory(cat)) return { page: 'notfound' };
+    return { page: 'boutique', cat, pg: Math.max(1, parseInt(p, 10) || 1) };
+  }
   if (h.startsWith('produit-')) {
     const [id, c] = h.slice(8).split('--c');
     const p = findProduct(id);
@@ -37,6 +45,7 @@ export function parse(hash) {
 export const href = {
   home: '#',
   section: (s) => `#${s}`,
+  boutique: (cat, pg = 1) => (cat ? `#boutique-${cat}${pg > 1 ? `--p${pg}` : ''}` : '#boutique'),
   product: (id, colour = 0) => (colour > 0 ? `#produit-${id}--c${colour}` : `#produit-${id}`),
   bag: '#panier',
   checkout: '#commande',
@@ -47,42 +56,59 @@ export const href = {
 };
 
 const EVT = 'pf-route';
-const depth = () => history.state?.pfDepth || 0;
 const notify = () => window.dispatchEvent(new Event(EVT));
+const trail = () => (Array.isArray(history.state?.pfTrail) ? history.state.pfTrail : []);
+const isHome = (h) => parse(h).page === 'home';
 
 export const go = (h) => {
   if (location.hash === h || (h === '#' && !location.hash)) notify();
   else location.hash = h;
 };
 
-// Open a product over the current page.
-export const openProduct = (h) => {
+// Open a layer (collection browser, category, product) over the current view.
+export const push = (h) => {
   if (location.hash === h) return;
-  history.pushState({ pfDepth: depth() + 1 }, '', h);
+  history.pushState({ pfTrail: [...trail(), location.hash] }, '', h);
   notify();
 };
 
-// Close the product overlay and return to the page beneath it.
-export const closeProduct = (baseHash) => {
-  const d = depth();
-  if (d > 0) history.go(-d);
-  else {
-    history.replaceState(null, '', baseHash || location.pathname + location.search);
-    notify();
-  }
+// Change the current view without a new history entry (pagination).
+export const replace = (h) => {
+  history.replaceState(history.state, '', h);
+  notify();
 };
+
+// Return to `target`: step back through history when it is where the visitor
+// came from (so the view beneath is exactly as they left it); otherwise
+// (e.g. the link was opened directly) replace the current entry.
+export const backTo = (target) => {
+  const t = trail();
+  for (let i = t.length - 1; i >= 0; i--) {
+    if (t[i] === target || (isHome(target) && isHome(t[i]))) {
+      history.go(i - t.length);
+      return;
+    }
+  }
+  history.replaceState(null, '', target && target !== '#' ? target : location.pathname + location.search);
+  notify();
+};
+
+export const openProduct = push;
+export const closeProduct = backTo;
 
 export function useRoute() {
   const [route, setRoute] = useState(() => parse(location.hash));
   useEffect(() => {
     const on = () => setRoute(parse(location.hash));
-    // Every same-page product link opens through openProduct.
+    // Product and collection-browser links open as layers.
     const onClick = (e) => {
       if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
-      const a = e.target.closest?.('a[href^="#produit-"]');
+      const a = e.target.closest?.('a[href^="#produit-"], a[href^="#boutique"]');
       if (!a) return;
       e.preventDefault();
-      openProduct(a.getAttribute('href'));
+      const h = a.getAttribute('href');
+      if (a.dataset.replace !== undefined) replace(h);
+      else push(h);
     };
     window.addEventListener('hashchange', on);
     window.addEventListener('popstate', on);

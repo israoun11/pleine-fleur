@@ -1,28 +1,21 @@
-import { COLLECTION } from '../data/products.js';
 import { CAMPAIGN } from '../data/site.js';
 import { href } from '../router.js';
-import { BagImage } from './ArchCard.jsx';
 
-// The collection, laid out like an editorial spread: large two-up studio
-// images edge to edge, no names or prices beneath. Each image opens its own
-// real product in the selected colour; the product overlay holds the details.
+// The collection entrance: two cards side by side. The first opens the
+// collection browser, the second the Art of Elegance editorial.
 export function Gallery() {
+  const cards = [
+    { to: href.boutique(), src: CAMPAIGN.entryCollection, alt: 'Three Pleine Fleur handbags in beige arches on stone plinths', title: 'The Collection' },
+    { to: href.section('magazine'), src: CAMPAIGN.entryElegance, alt: 'A woman in ivory resting her arm beside a red quilted handbag', title: 'The Art of Elegance' },
+  ];
   return (
-    <section className="gallery" id="collection" aria-label="La collection">
-      <h2 className="visually-hidden">La collection</h2>
-      <div className="gallery__grid">
-        {COLLECTION.map(({ product, vi, photo }, i) => (
-          <a
-            key={photo}
-            href={href.product(product.id, vi)}
-            className="gallery__item"
-            aria-label={`${product.name}, ${product.variants[vi].name}`}
-            data-reveal
-          >
-            <BagImage photo={photo} eager={i < 2} />
-            <span className="gallery__label" aria-hidden="true">
-              {product.name}
-            </span>
+    <section className="entry" id="collection" aria-label="La collection">
+      <div className="entry__grid">
+        {cards.map((c) => (
+          <a key={c.title} href={c.to} className="entry__card">
+            <img src={c.src} alt={c.alt} loading="eager" />
+            <span className="entry__shade" aria-hidden="true" />
+            <span className="entry__title">{c.title}</span>
           </a>
         ))}
       </div>

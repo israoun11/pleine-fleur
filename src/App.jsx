@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useState } from 'react';
 import { BagProvider } from './context/BagContext.jsx';
-import { closeProduct, useRoute } from './router.js';
+import { backTo, useRoute } from './router.js';
 import { findProduct } from './data/products.js';
 import Nav from './components/Nav.jsx';
 import MenuPanel from './components/MenuPanel.jsx';
@@ -8,6 +8,7 @@ import Hero from './components/Hero.jsx';
 import { DiscoverCampaign, EditorialCampaign, Gallery, Magazine, Maison } from './components/HomeSections.jsx';
 import Footer from './components/Footer.jsx';
 import ProductOverlay from './pages/ProductOverlay.jsx';
+import Boutique from './pages/Boutique.jsx';
 import Overlay from './components/Overlay.jsx';
 import BagPage from './pages/BagPage.jsx';
 import CheckoutPage from './pages/CheckoutPage.jsx';
@@ -74,20 +75,25 @@ function Store() {
   const [menu, setMenu] = useState(false);
   const [order, setOrder] = useState(loadOrder);
 
-  // The page beneath a product overlay: the last non-product route
-  // (home when a product link is opened directly).
+  // Layers: the main page; the collection browser above it; the product
+  // popup above whichever view it was opened from.
   const isProduct = route.page === 'product';
-  const [base, setBase] = useState(() => (isProduct ? { route: { page: 'home', section: null }, hash: '' } : { route, hash: location.hash }));
+  const isShop = route.page === 'boutique';
+  const HOME = { route: { page: 'home', section: null }, hash: '' };
+  const [under, setUnder] = useState(() => (isProduct ? HOME : { route, hash: location.hash }));
+  const [main, setMain] = useState(() => (isProduct || isShop ? HOME : { route, hash: location.hash }));
   useEffect(() => {
-    if (!isProduct) setBase({ route, hash: location.hash });
+    if (!isProduct) setUnder({ route, hash: location.hash });
+    if (!isProduct && !isShop) setMain({ route, hash: location.hash });
   }, [route]);
-  const page0 = isProduct ? base.route : route;
+  const page0 = main.route;
   const key = `${page0.page}:${page0.id || page0.slug || ''}`;
+  const shopRoute = isShop ? route : isProduct && under.route.page === 'boutique' ? under.route : null;
 
   // New page: start at the top. Home section links: scroll to the section.
-  // Opening or closing a product overlay never moves the page beneath.
+  // Opening or closing a layer never moves the page beneath.
   useLayoutEffect(() => {
-    if (isProduct) return;
+    if (isProduct || isShop) return;
     if (page0.page === 'home' && page0.section && page0.section !== 'top') {
       requestAnimationFrame(() => document.getElementById(page0.section)?.scrollIntoView({ behavior: 'smooth' }));
     } else {
@@ -138,7 +144,9 @@ function Store() {
       page = <NotFound />;
   }
 
-  const back = () => closeProduct(base.hash);
+  const back = () => backTo(under.hash);
+  const shopBack = () => backTo(shopRoute?.cat ? '#boutique' : main.hash);
+  const shopClose = () => backTo(main.hash);
 
   return (
     <div className={`site site--${page0.page}`}>
@@ -151,7 +159,10 @@ function Store() {
       </main>
       <Footer />
       <MenuPanel open={menu} onClose={() => setMenu(false)} />
-      <Overlay open={isProduct} onClose={back} label={isProduct ? findProduct(route.id).name : 'Produit'} variant="product">
+      <Overlay open={!!shopRoute} onClose={shopBack} label="La collection" variant="shop">
+        {shopRoute && <Boutique route={shopRoute} onBack={shopBack} onClose={shopClose} />}
+      </Overlay>
+      <Overlay open={isProduct} onClose={back} label={isProduct ? findProduct(route.id).name : 'Produit'} variant="pop">
         {isProduct && <ProductOverlay id={route.id} colour={route.colour} onBack={back} />}
       </Overlay>
     </div>

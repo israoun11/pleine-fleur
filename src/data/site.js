@@ -10,6 +10,9 @@ export const CAMPAIGN = {
   tileFlowers: 'img/campaign/tile-flowers.webp',
   tileWoman: 'img/campaign/tile-woman.webp',
   tileSeated: 'img/campaign/tile-seated.webp',
+  // Homepage collection entry cards
+  entryCollection: 'img/campaign/entry-collection.webp', // three studio images side by side
+  entryElegance: 'img/campaign/entry-elegance.webp', // crop of portrait.webp
 };
 
 // Replace each url with the brand's own profile link.
